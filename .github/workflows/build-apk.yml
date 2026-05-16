@@ -4,13 +4,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Build APK
-        uses: jonathan-field/pwa-to-apk-action@v1
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          url: https://new676.github.io/Farm-attendance/
-          name: Farm
-      - uses: actions/upload-artifact@v2
+          node-version: '18'
+      
+      - name: Install PWABuilder
+        run: npm install -g pwabuilder
+      
+      - name: Build APK
+        run: |
+          mkdir -p output
+          pwabuilder package --url https://new676.github.io/Farm-attendance/ --output output/ --platform android
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: farm-apk
-          path: ./*.apk
+          path: ./output/*.apk
