@@ -1,0 +1,16 @@
+name: Build APK
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build APK
+        uses: jonathan-field/pwa-to-apk-action@v1
+        with:
+          url: https://new676.github.io/Farm-attendance/
+          name: Farm
+      - uses: actions/upload-artifact@v2
+        with:
+          name: farm-apk
+          path: ./*.apk
