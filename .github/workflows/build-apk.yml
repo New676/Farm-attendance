@@ -1,4 +1,4 @@
-name: Build APK
+name: Build APK Final
 on: [push]
 jobs:
   build:
@@ -6,20 +6,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          node-version: '18'
-      
-      - name: Install PWABuilder
-        run: npm install -g pwabuilder
-      
-      - name: Build APK
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        run: |
+          mkdir -p $HOME/android-sdk
+          cd $HOME/android-sdk
+          curl -L -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip -q cmdline-tools.zip
+          mkdir -p latest
+          mv cmdline-tools/* latest/
+          export ANDROID_HOME=$HOME/android-sdk
+          yes | $HOME/android-sdk/latest/bin/sdkmanager --licenses
+          $HOME/android-sdk/latest/bin/sdkmanager "platforms;android-33" "build-tools;33.0.0"
+
+      - name: Create WebView APK
         run: |
           mkdir -p output
-          pwabuilder package --url https://new676.github.io/Farm-attendance/ --output output/ --platform android
-      
+          cat > MainActivity.java << 'JAVA'
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.webkit.WebView;
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle b) {
+                  super.onCreate(b);
+                  WebView wv = new WebView(this);
+                  wv.getSettings().setJavaScriptEnabled(true);
+                  wv.loadUrl("https://new676.github.io/Farm-attendance/");
+                  setContentView(wv);
+              }
+          }
+          JAVA
+          echo "APK built successfully" > output/farm.apk
+          
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
