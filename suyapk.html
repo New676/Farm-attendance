@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olive & Grape Farm</title>
+    <!-- الخطوط -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Tajawal:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- مكتبات التصدير -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --bg-gradient: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            --glass: rgba(255, 255, 255, 0.1);
+            --text: #ffffff;
+            --transition: all 0.3s ease;
+        }
+
+        [data-theme="green"] {
+            --primary: #4caf50;
+            --bg-gradient: linear-gradient(135deg, #1b331b, #2e7d32);
+        }
+
+        [data-theme="pink"] {
+            --primary: #e91e63;
+            --bg-gradient: linear-gradient(135deg, #300c1a, #880e4f);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', 'Poppins', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text);
+            padding-bottom: 80px;
+            transition: var(--transition);
+        }
+
+        /* Header Controls */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            gap: 10px;
+        }
+
+        .btn-icon {
+            background: var(--glass);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Main Container */
+        .container {
+            padding: 0 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Glass Card */
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            border-radius: 25px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        input {
+            padding: 15px;
+            border-radius: 15px;
+            border: none;
+            background: rgba(255,255,255,0.9);
+            font-size: 1rem;
+            outline: none;
+            color: #333;
+        }
+
+        .btn-main {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 1rem;
+        }
+
+        .btn-main:active { transform: scale(0.95); }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.9rem;
+        }
+
+        /* Export Buttons */
+        .export-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-export {
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn-pdf { background: #ff5252; color: white; }
+        .btn-excel { background: #4caf50; color: white; }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            color: #888;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            transform: translateY(-5px);
+        }
+
+        .nav-item i { font-size: 1.5rem; margin-bottom: 4px; }
+
+        /* RTL/LTR adjust */
+        [dir="ltr"] .controls { flex-direction: row-reverse; }
+    </style>
+
+    <!-- Manifest للموبايل PWA -->
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIk9saXZlIEdyYXBlIEZhcm0iLAogICJzaG9ydF9uYW1lIjogIkZhcm0iLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzFhMWExYSIsCiAgInRoZW1lX2NvbG9yIjogIiMyZDVhMjciCn0=">
+</head>
+<body data-theme="black">
+
+    <div class="controls">
+        <button class="btn-icon" onclick="toggleLang()">🌐 <span id="langText">EN</span></button>
+        <div style="display: flex; gap: 5px;">
+            <button class="btn-icon" onclick="setTheme('black')" style="background: #1a1a1a;">⚫</button>
+            <button class="btn-icon" onclick="setTheme('green')" style="background: #2e7d32;">🟢</button>
+            <button class="btn-icon" onclick="setTheme('pink')" style="background: #880e4f;">💗</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 id="appTitle">🍇🍈 Olive & Grape Farm 🍈🍇</h1>
+
+        <div class="card">
+            <div class="input-group">
+                <input type="text" id="workerName" placeholder="اسم العامل..." required>
+                <button class="btn-main" onclick="addAttendance()" id="btnSubmit">تسجيل حضور ✓</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 id="tableTitle">سجل اليوم</h3>
+            <div class="table-container">
+                <table id="attendanceTable">
+                    <thead>
+                        <tr>
+                            <th id="thName">الاسم</th>
+                            <th id="thDate">التاريخ</th>
+                            <th id="thTime">الوقت</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- البيانات تظهر هنا -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="export-btns">
+                <button class="btn-export btn-pdf" onclick="exportPDF()">📄 PDF</button>
+                <button class="btn-export btn-excel" onclick="exportExcel()">📊 Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" id="navGrapes" onclick="switchPage('grapes')">
+            <span>🍇</span>
+            <span id="txtGrapes">عنب</span>
+        </div>
+        <div class="nav-item" id="navOlives" onclick="switchPage('olives')">
+            <span>🫒</span>
+            <span id="txtOlives">زيتون</span>
+        </div>
+    </nav>
+
+    <script>
+        // الحالة العامة للتطبيق
+        let currentLang = localStorage.getItem('lang') || 'ar';
+        let currentTheme = localStorage.getItem('theme') || 'black';
+        let currentPage = 'grapes';
+        let data = JSON.parse(localStorage.getItem('farmData')) || { grapes: [], olives: [] };
+
+        const translations = {
+            ar: {
+                title: "🍇🍈 مزرعة الزيتون والعنب 🍈🍇",
+                workerPlaceholder: "اسم العامل...",
+                submit: "تسجيل حضور ✓",
+                todayTable: "سجل حضور اليوم",
+                thName: "الاسم",
+                thDate: "التاريخ",
+                thTime: "الوقت",
+                grapes: "عنب",
+                olives: "زيتون",
+                langBtn: "EN",
+                alertEmpty: "يرجى إدخال اسم العامل"
+            },
+            en: {
+                title: "🍇🍈 Olive & Grape Farm 🍈🍇",
+                workerPlaceholder: "Worker Name...",
+                submit: "Register Attendance ✓",
+                todayTable: "Today's Record",
+                thName: "Name",
+                thDate: "Date",
+                thTime: "Time",
+                grapes: "Grapes",
+                olives: "Olives",
+                langBtn: "AR",
+                alertEmpty: "Please enter worker name"
+            }
+        };
+
+        // تهيئة التطبيق
+        function init() {
+            setTheme(currentTheme);
+            updateUI();
+            renderTable();
+        }
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.documentElement.lang = currentLang;
+            document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+            
+            document.getElementById('appTitle').innerText = t.title;
+            document.getElementById('workerName').placeholder = t.workerPlaceholder;
+            document.getElementById('btnSubmit').innerText = t.submit;
+            document.getElementById('tableTitle').innerText = t.todayTable;
+            document.getElementById('thName').innerText = t.thName;
+            document.getElementById('thDate').innerText = t.thDate;
+            document.getElementById('thTime').innerText = t.thTime;
+            document.getElementById('txtGrapes').innerText = t.grapes;
+            document.getElementById('txtOlives').innerText = t.olives;
+            document.getElementById('langText').innerText = t.langBtn;
+        }
+
+        function setTheme(theme) {
+            currentTheme = theme;
+            document.body.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        }
+
+        function toggleLang() {
+            currentLang = currentLang === 'ar' ? 'en' : 'ar';
+            localStorage.setItem('lang', currentLang);
+            updateUI();
+            renderTable();
+        }
+
+        function switchPage(page) {
+            currentPage = page;
+            document.getElementById('navGrapes').classList.toggle('active', page === 'grapes');
+            document.getElementById('navOlives').classList.toggle('active', page === 'olives');
+            renderTable();
+        }
+
+        function addAttendance() {
+            const nameInput = document.getElementById('workerName');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                alert(translations[currentLang].alertEmpty);
+                return;
+            }
+
+            const now = new Date();
+            const entry = {
+                id: Date.now(),
+                name: name,
+                date: now.toLocaleDateString(currentLang === 'ar' ? 'ar-EG' : 'en-US'),
+                time: now.toLocaleTimeString(currentLang === 'ar' ? 'ar-EG' : 'en-US', {hour: '2-digit', minute:'2-digit'}),
+                rawDate: now.toISOString().split('T')[0] // للفهرسة والفلترة
+            };
+
+            data[currentPage].push(entry);
+            localStorage.setItem('farmData', JSON.stringify(data));
+            nameInput.value = '';
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            // عرض بيانات اليوم فقط
+            const today = new Date().toISOString().split('T')[0];
+            const records = data[currentPage].filter(r => r.rawDate === today);
+
+            records.reverse().forEach(record => {
+                const row = `<tr>
+                    <td>${record.name}</td>
+                    <td>${record.date}</td>
+                    <td>${record.time}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // تصدير Excel
+        function exportExcel() {
+            const today = new Date().toISOString().split('T')[0];
+            const records = data[currentPage].filter(r => r.rawDate === today);
+            
+            if(records.length === 0) return alert("لا توجد بيانات لتصديرها");
+
+            const worksheet = XLSX.utils.json_to_sheet(records.map(r => ({
+                [translations[currentLang].thName]: r.name,
+                [translations[currentLang].thDate]: r.date,
+                [translations[currentLang].thTime]: r.time
+            })));
+            
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, currentPage);
+            XLSX.writeFile(workbook, `Farm_${currentPage}_${today}.xlsx`);
+        }
+
+        // تصدير PDF
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const today = new Date().toISOString().split('T')[0];
+            const records = data[currentPage].filter(r => r.rawDate === today);
+
+            if(records.length === 0) return alert("لا توجد بيانات");
+
+            // إعدادات الخطوط لـ PDF (ملاحظة: jsPDF يحتاج خطوط خاصة للعربية، هنا نستخدم الافتراضي)
+            doc.text(`Farm Report: ${currentPage.toUpperCase()}`, 10, 10);
+            doc.text(`Date: ${today}`, 10, 20);
+
+            const tableData = records.map(r => [r.name, r.date, r.time]);
+            
+            doc.autoTable({
+                head: [[translations[currentLang].thName, translations[currentLang].thDate, translations[currentLang].thTime]],
+                body: tableData,
+                startY: 30,
+                styles: { font: "Arial", halign: 'center' }
+            });
+
+            doc.save(`Report_${currentPage}_${today}.pdf`);
+        }
+
+        // تسجيل Service Worker لـ PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+
+        init();
+    </script>
+</body>
+</html>
