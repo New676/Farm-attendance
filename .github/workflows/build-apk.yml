@@ -15,38 +15,79 @@ jobs:
 
       - name: Setup Android SDK
         run: |
-          mkdir -p $HOME/android-sdk
-          cd $HOME/android-sdk
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
           curl -L -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q cmdline-tools.zip
-          mkdir -p latest
-          mv cmdline-tools/* latest/
+          mv cmdline-tools latest
           export ANDROID_HOME=$HOME/android-sdk
-          yes | $HOME/android-sdk/latest/bin/sdkmanager --licenses
-          $HOME/android-sdk/latest/bin/sdkmanager "platforms;android-33" "build-tools;33.0.0"
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --licenses
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platforms;android-33" "build-tools;33.0.0"
 
-      - name: Create WebView APK
+      - name: Build APK
         run: |
+          export ANDROID_HOME=$HOME/android-sdk
           mkdir -p output
-          cat > MainActivity.java << 'JAVA'
+          
+          # إنشاء تطبيق WebView بسيط
+          mkdir -p app/src/main/java/com/farm/app
+          mkdir -p app/src/main/res/layout
+          
+          cat > app/src/main/AndroidManifest.xml << 'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.farm.app">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:allowBackup="true"
+                  android:label="Olive & Grape Farm"
+                  android:theme="@android:style/Theme.NoTitleBar">
+                  <activity android:name=".MainActivity">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          XML
+          
+          cat > app/src/main/java/com/farm/app/MainActivity.java << 'JAVA'
+          package com.farm.app;
           import android.app.Activity;
           import android.os.Bundle;
           import android.webkit.WebView;
+          import android.webkit.WebSettings;
+          import android.view.View;
+          import android.graphics.Color;
+          
           public class MainActivity extends Activity {
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
                   WebView wv = new WebView(this);
-                  wv.getSettings().setJavaScriptEnabled(true);
+                  wv.setBackgroundColor(Color.parseColor("#1a1a1a"));
+                  WebSettings ws = wv.getSettings();
+                  ws.setJavaScriptEnabled(true);
+                  ws.setDomStorageEnabled(true);
+                  ws.setAllowFileAccess(true);
                   wv.loadUrl("https://new676.github.io/Farm-attendance/");
                   setContentView(wv);
               }
           }
           JAVA
-          echo "APK built successfully" > output/farm.apk
+          
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          
+          # بناء APK
+          $ANDROID_HOME/build-tools/33.0.0/aapt package -f -M app/src/main/AndroidManifest.xml -S app/src/main/res -I $ANDROID_HOME/platforms/android-33/android.jar -F output/farm-unsigned.apk
+          
+          # توقيع APK
+          keytool -genkey -v -keystore debug.keystore -alias debug -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Debug, OU=Farm, O=Farm, L=City, S=State, C=US" -noprompt
+          $ANDROID_HOME/build-tools/33.0.0/apksigner sign --ks debug.keystore --ks-pass pass:android --out output/farm.apk output/farm-unsigned.apk
           
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: farm-apk
-          path: ./output/*.apk
+          path: ./output/farm.apk
